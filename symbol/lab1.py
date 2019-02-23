@@ -55,7 +55,7 @@ def build_s_function(table, num_of_bits):
 		coefficients = pascal_triangle(i)
 		for j in range(2 ** num_of_bits):
 			if coefficients[j]:
-				answer += monoms[j] + ' xor '
+				answer += monoms[j] + ' ⊕ '
 		counter += 1
 		answer = answer[0:len(answer) - 4:]
 		answer += '\n'
