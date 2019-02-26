@@ -112,5 +112,25 @@ S7 = (
 	102, 31, 26, 45, 75, 4, 85, 92, 37, 74, 80, 49, 68, 29, 115, 44,
 	64, 107, 108, 24, 110, 83, 36, 78, 42, 19, 15, 41, 88, 119, 59, 3)
 
+def realSpectrumDegree(function):
+	spectrum = realSpectrum(function)
+	monom_degree = 0
+	max_degree = [0 for _ in range(int(math.log2(len(function))))]
+	for i in range(len(function)):
+		for j in range(int(math.log2(len(function)))):
+			print(spectrum[j].tolist()[0])
+			if spectrum[j].tolist()[0][i] != 0:
+				for k in range(int(math.log2(len(function)))):
+					if (i >> k & 1):
+						monom_degree += 1
+				if monom_degree > max_degree[j]:
+					max_degree[j] = monom_degree
+			monom_degree = 0
+	k = 0
+	for i in max_degree:
+		print("Degree of real polinomium y{} is: {}".format(k, i))
+		k += 1
+	
 
+print(realSpectrumDegree(S7))
 build_s_function(S7, 7)
