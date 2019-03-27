@@ -3,6 +3,7 @@ import numpy as np
 W = np.array([[1, 1], [1, -1]],int)
 V = np.array([[1, 0], [-1, 1]],int)
 combinations = []
+FI = []
 S7 = (
      54, 50, 62, 56, 22, 34, 94, 96, 38,  6, 63, 93, 2,  18,123, 33,
      55,113, 39,114, 21, 67, 65, 12, 47, 73, 46, 27, 25,111,124, 81,
@@ -48,13 +49,12 @@ S9 = (
     438,477,387,122,192, 42,381,  5,145,118,180,449,293,323,136,380,
      43, 66, 60,455,341,445,202,432,  8,237, 15,376,436,464, 59,461,
 )
-test_function2 = (0, 3, 2, 1)
+test_function2 = (2,2,0,1)
 test_function = (0, 0, 0, 1, 0, 1, 1, 1)
-test_function3 = (0, 0, 0, 1)
 #####Вес разрядных функций#####
 def weight(function):
     input_size = len(bin(max(function))[2:])
-    print(input_size)
+    #print(input_size)
     weights = [0 for _ in range(input_size)]
     for numbers in range(len(function)):
         for functions in range(len(weights)):
@@ -77,7 +77,7 @@ def anf(function):
 #####Число мономов у функций в отдельности#####
 def monomeNumber(function):
     input_size = len(bin(max(function))[2:])
-    print(len(function))
+    #print(len(function))
     ANF = anf(function)
     buff = []
     monome_number = []
@@ -135,9 +135,9 @@ def buildSFunction(function):
     for i in range(num_of_bits):
         answer += print_yi.format(counter) + ' = '
         coefficients = functionValue(anf(function))[i]
-        for j in range(2 ** num_of_bits):
+        for j in range(len(function)):
             if coefficients[j]:
-                answer += monoms[j] + ' ⊕  '
+                answer += monoms[j] + ' ⊕ '
         counter += 1
         answer = answer[0:len(answer) - 3:]
         answer += '\n'
@@ -147,17 +147,19 @@ def buildSFunction(function):
 def fourierSpectrum(function):
     values = functionValue(function)
     spectrum = []
+    M = hadamardMatrix(int(math.log2(len(function))))
     for functions in range(len(bin(max(function))[2:])):
-        spectrum.append(np.matmul(np.array(values[functions]).T,hadamardMatrix(int(math.log2(len(function))))).tolist())
+        spectrum.append(np.matmul(np.array(values[functions]).T,M).tolist())
     return spectrum
 #########################################################
 #####Список Уолш образов для всех разрядных функций#####
 def walschSpectrum(function):
     values = functionValue(function)
     unit_array = np.array([1 for _ in range(len(function))])
+    M = hadamardMatrix(int(math.log2(len(function))))
     spectrum = []
     for functions in range(len(bin(max(function))[2:])):
-        spectrum.append(np.matmul((unit_array - 2 * np.array(values[functions])).T,hadamardMatrix(int(math.log2(len(function))))).tolist())
+        spectrum.append(np.matmul((unit_array - 2 * np.array(values[functions])).T,M).tolist())
     return spectrum
 #########################################################
 #####Вывод вероятности #####
@@ -180,9 +182,10 @@ def realMatrix(dimension):
 #####Список коэффициентов действительного многочлена#####
 def realSpectrum(function):
     values = functionValue(function)
+    M = realMatrix(int(math.log2(len(function))))
     spectrum = []
     for functions in range(len(bin(max(function))[2:])):
-        spectrum.append(np.matmul(realMatrix(int(math.log2(len(function)))),np.array(values[functions])[np.newaxis].T).T[0].tolist())
+        spectrum.append(np.matmul(M,np.array(values[functions])[np.newaxis].T).T[0].tolist())
     return spectrum
 #########################################################
 #####Степень действительного многочлена#####
@@ -190,9 +193,9 @@ def realSpectrumDegree(function):
 	spectrum = realSpectrum(function)
 	monom_degree = 0
 	max_degree = [0 for _ in range(len(bin(max(function))[2:]))]
-	for i in range(len(function) - 1):
+	for i in range(len(function)):
 		for j in range(len(bin(max(function))[2:])):
-			if spectrum[j][i + 1] != 0:
+			if spectrum[j][i] != 0:
 				for k in range(int(math.log2(len(function)))):
 					if (i >> k & 1):
 						monom_degree += 1
@@ -206,8 +209,8 @@ def realSpectrumPolinomsNum(function):
 	spectrum = realSpectrum(function)
 	monoms_num = [0 for _ in range(len(bin(max(function))[2:]))]
 	for i in range(len(bin(max(function))[2:])): 
-		for j in range(len(function) - 1):
-			if spectrum[i][j + 1] != 0:
+		for j in range(len(function)):
+			if spectrum[i][j] != 0:
 				monoms_num[i] += 1
 	return monoms_num
 #########################################################
@@ -217,15 +220,93 @@ def linearCombination(function):
     linearCombinations = []
     buff = np.zeros(len(function),dtype = int)
     for i in range(len(function)):
-        for j in range(int(math.log2(len(function)))):
-            buff += i >> j & 1*np.array(function_values[j])
+        for j in range(len(bin(max(function))[2:])):
+            buff += (i >> j & 1)*np.array(function_values[j])
+        #print(buff)
         linearCombinations.append(np.remainder(buff,2).tolist())
-        buff = buff = np.zeros(len(function),dtype = int)
+        buff = np.zeros(len(function),dtype = int)
     buff = 0
     for i in range(len(linearCombinations[0])):
         for j in range(len(linearCombinations)):
             buff += (2 ** j) * linearCombinations[j][i]
         combinations.append(buff)
         buff = 0
-    return combinations
+    return linearCombinations,combinations
 #####################################
+#####Разностная характеристика#####
+def subCharacteristics(function):
+    input_size = len(bin(max(function))[2:])
+    max_list = []
+    for a in range(2 ** input_size):
+        for b in range(2 ** input_size):
+            x_number = 0
+            for x in range(2 ** input_size):
+                if function[x ^ a] ^ function[x] == (b):
+                    x_number +=1
+            max_list.append(x_number)
+    print("Таблица разностных характеристик:")        
+    return max_list
+###################################
+#####Функция FI#####
+def funFI(input, round_key):
+        # assert _bitlen(input)  <= 16
+        
+        left  = input >> 7
+        right = input & 0b1111111
+
+        round_key_1 = round_key >> 9
+        round_key_2 = round_key & 0b111111111
+
+        tmp_l = right
+        # assert _bitlen(left)  <= 9
+        tmp_r = S9[left] ^ right
+
+        left  = tmp_r ^ round_key_2
+        # assert _bitlen(tmp_l) <= 7
+        right = S7[tmp_l] ^ (tmp_r & 0b1111111) ^ round_key_1
+
+        tmp_l = right
+        # assert _bitlen(left)  <= 9
+        tmp_r = S9[left] ^ right
+
+        # assert _bitlen(tmp_l) <= 7
+        left  = S7[tmp_l] ^ (tmp_r & 0b1111111)
+        right = tmp_r
+
+        # assert _bitlen(left)  <= 7
+        # assert _bitlen(right) <= 9
+        return (left << 9) | right
+
+#####Записывает значения функций FI  в нужной форме#####
+def funFIConvert(round_key):
+    for i in range(2 ** 17):
+        FI.append(funFI(i,round_key))
+########################################################
+norm, used = linearCombination(S7)
+mass = weight(used)
+fourier = fourierSpectrum(used)
+walsh = walschSpectrum(used)
+ANF = anf(used)
+real = realSpectrum(used)
+degree = realSpectrumDegree(used)
+num = realSpectrumPolinomsNum(used)
+for i in range(128):
+        print("Коэффициенты при разрядных функциях слева направо",bin(i+128)[3:])
+        print("Значение получившейся линейной комбинации")
+        print(norm[i])
+        print("Вес")
+        print(mass[i])
+        print("Число мономов для многочлена Жегалкина")
+        print(len(ANF))
+        print("Коэффициенты Фурье")
+        print(fourier[i])
+        print("Коэффициенты Адамара-Уолша")
+        print(walsh[i])
+        print("Действительный многочлен")
+        print(real[i])
+        print("Степень действительного многочлена")
+        print(degree[i])
+        print("Число мономов")
+        print(num[i])
+print("Список линейных аналогов и соответствующих вероятностей совпадения разрядной функции с линейной")
+print(printProbability(used))
