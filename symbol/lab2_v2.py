@@ -1,4 +1,4 @@
-from sympy import *
+mport sympy
 init_printing()
 
 z = Symbol('z',real=True)
