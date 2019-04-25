@@ -1,8 +1,6 @@
-import base64
-
-nb = 4  # num of columns in state
-nk = 4  # length of key is 32 * nk bits
-nr = 10 # num of rounds
+nb = 4   # num of columns in state
+nk = 4   # length of key is 32 * nk bits
+nr = 10  # num of rounds
 sbox = [
         0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
         0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -61,54 +59,58 @@ def galois_mult(a, b):
 
 
 def rotation(lst, n):
-    '''
+    """
     left cyclic shift by n positions
-    '''
+    """
     new_lst = [0 for _ in range(len(lst))]
     for i in range(len(lst)):
         new_lst[i] = lst[(i+n) % len(lst)]
-    return(new_lst)
+    return new_lst
 
 
 def right_rotation(lst, n):
     new_lst = [0 for _ in range(len(lst))]
     for i in range(len(lst)):
         new_lst[i] = lst[i - n]
-    return(new_lst)
+    return new_lst
 
 
 def sub_bytes(state):
-    '''
+    """
     change bytes according to sbox
-    '''
+    """
     for i in range(len(state)):
         for j in range(len(state[i])):
             row = state[i][j] // 16
             column = state[i][j] % 16
             state[i][j] = sbox[column + 16 * row]
-    return(state)
+    return state
 
 
 def shift_rows(state):
-    '''
+    """
     cyclic shift in state
-    '''
+    """
     for i in range(nb):
         state[i] = rotation(state[i], i)
-    return(state)
+    return state
 
 
 def mix_columns(state):
     for i in range(4):
-        state[0][i] = galois_mult(state[0][i], 2) ^ galois_mult(state[1][i], 3) ^ \
-                      galois_mult(state[2][i], 1) ^ galois_mult(state[3][i], 1)
-        state[1][i] = galois_mult(state[0][i], 1) ^ galois_mult(state[1][i], 2) ^ \
-                      galois_mult(state[2][i], 3) ^ galois_mult(state[3][i], 1)
-        state[2][i] = galois_mult(state[0][i], 1) ^ galois_mult(state[1][i], 1) ^ \
-                      galois_mult(state[2][i], 2) ^ galois_mult(state[3][i], 3)
-        state[3][i] = galois_mult(state[0][i], 3) ^ galois_mult(state[1][i], 1) ^ \
-                      galois_mult(state[2][i], 1) ^ galois_mult(state[3][i], 2)
-    return(state)
+        s0 = galois_mult(state[0][i], 2) ^ galois_mult(state[1][i], 3) ^ \
+                         galois_mult(state[2][i], 1) ^ galois_mult(state[3][i], 1)
+        s1 = galois_mult(state[0][i], 1) ^ galois_mult(state[1][i], 2) ^ \
+                         galois_mult(state[2][i], 3) ^ galois_mult(state[3][i], 1)
+        s2 = galois_mult(state[0][i], 1) ^ galois_mult(state[1][i], 1) ^ \
+                         galois_mult(state[2][i], 2) ^ galois_mult(state[3][i], 3)
+        s3 = galois_mult(state[0][i], 3) ^ galois_mult(state[1][i], 1) ^ \
+                         galois_mult(state[2][i], 1) ^ galois_mult(state[3][i], 2)
+        state[0][i] = s0
+        state[1][i] = s1
+        state[2][i] = s2
+        state[3][i] = s3
+    return state
 
 
 def key_expansion(key):
@@ -128,8 +130,8 @@ def key_expansion(key):
         temp_2 = []  # col - nk column
         result = []
         for i in range(nk):
-            temp.append(key_schedule[i][col - 1])    # getting the (col-1) column
-            temp_2.append(key_schedule[i][col - nk]) # getting the (col-nk) column
+            temp.append(key_schedule[i][col - 1])     # getting the (col-1) column
+            temp_2.append(key_schedule[i][col - nk])  # getting the (col-nk) column
         if col % nk == 0:
             temp = rotation(temp, 1)
             for i in range(nk):
@@ -142,33 +144,33 @@ def key_expansion(key):
                 result.append(temp[i] ^ temp_2[i])
         for i in range(4):
             key_schedule[i].append(result[i])
-    return(key_schedule)
+    return key_schedule
 
 
 def add_round_key(key, state, n):
     for i in range(nk):
         for j in range(nk):
             state[j][i] ^= key[j][n*4 + i]
-    return(state)
+    return state
 
 
-def encryption(input, key):
+def encryption(plain_text, key):
     key = key_expansion(key)
-    #print(key)
+    #  print(key)
     state = [[] for _ in range(4)]
     for i in range(4):
         for j in range(nb):
-            state[i].append(ord(input[i+j*4]))
-    #print(state)
+            state[i].append(ord(plain_text[i+j*4]))
+    #  print(state)
     state = add_round_key(key, state, 0)
     for round in range(1, nr):
         state = sub_bytes(state)
         state = shift_rows(state)
-        #print(state)
+        #  print(state)
         state = mix_columns(state)
-        #print(state)
+        #  print(state)
         state = add_round_key(key, state, round)
-        #print(state)
+        #  print(state)
     state = sub_bytes(state)
     state = shift_rows(state)
     # print(state)
@@ -178,15 +180,13 @@ def encryption(input, key):
     for i in range(nb):
         for j in range(4):
             cipher_text = cipher_text + chr(state[j][i])
-    print(cipher_text)
-    print(state)
-    return(state)
+    return cipher_text
 
 
 def inv_shift_rows(state):
     for i in range(nb):
         state[i] = right_rotation(state[i], i)
-    return(state)
+    return state
 
 
 def inv_sub_bytes(state):
@@ -195,24 +195,32 @@ def inv_sub_bytes(state):
             row = state[i][j] // 16
             column = state[i][j] % 16
             state[i][j] = inv_sbox[column + 16 * row]
-    return(state)
+    return state
 
 
 def inv_mix_coloumns(state):
     for i in range(4):
-        state[0][i] = galois_mult(state[0][i], 14) ^ galois_mult(state[1][i], 11) ^ \
-                      galois_mult(state[2][i], 13) ^ galois_mult(state[3][i], 9)
-        state[1][i] = galois_mult(state[0][i], 9) ^ galois_mult(state[1][i], 14) ^ \
-                      galois_mult(state[2][i], 11) ^ galois_mult(state[3][i], 13)
-        state[2][i] = galois_mult(state[0][i], 13) ^ galois_mult(state[1][i], 9) ^ \
-                      galois_mult(state[2][i], 14) ^ galois_mult(state[3][i], 11)
-        state[3][i] = galois_mult(state[0][i], 11) ^ galois_mult(state[1][i], 13) ^ \
-                      galois_mult(state[2][i], 9) ^ galois_mult(state[3][i], 14)
-    return(state)
+        s0 = galois_mult(state[0][i], 14) ^ galois_mult(state[1][i], 11) ^ \
+                         galois_mult(state[2][i], 13) ^ galois_mult(state[3][i], 9)
+        s1 = galois_mult(state[0][i], 9) ^ galois_mult(state[1][i], 14) ^ \
+                         galois_mult(state[2][i], 11) ^ galois_mult(state[3][i], 13)
+        s2 = galois_mult(state[0][i], 13) ^ galois_mult(state[1][i], 9) ^ \
+                         galois_mult(state[2][i], 14) ^ galois_mult(state[3][i], 11)
+        s3 = galois_mult(state[0][i], 11) ^ galois_mult(state[1][i], 13) ^ \
+                         galois_mult(state[2][i], 9) ^ galois_mult(state[3][i], 14)
+        state[0][i] = s0
+        state[1][i] = s1
+        state[2][i] = s2
+        state[3][i] = s3
+    return state
 
 
-def decryption(state, key):
+def decryption(cipher_text, key):
     key = key_expansion(key)
+    state = [[] for _ in range(4)]
+    for i in range(4):
+        for j in range(nb):
+            state[i].append(ord(cipher_text[i + j * 4]))
     state = add_round_key(key, state, nr)
     for round in reversed(range(1, nr)):
         state = inv_shift_rows(state)
@@ -226,10 +234,12 @@ def decryption(state, key):
     for i in range(nb):
         for j in range(4):
             plain_text = plain_text + chr(state[j][i])
-    print(plain_text)
-    print(state)
-    return(state)
+    #  print("Открытый текст: " + plain_text)
+    #  print(state)
+    return plain_text
 
 
-cipher_text = encryption('l!aS4h67891a3456', '0123456789acfhkb')
-decryption(cipher_text, '0123456789acfhkb')
+cipher_text = encryption('nicedoneqwertyas', '0123456789acfhkb')
+plain_text = decryption(cipher_text, '0123456789acfhkb')
+print("Шифртекст: " + cipher_text)
+print("Открытый текст: " + plain_text)
