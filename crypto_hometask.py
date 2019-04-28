@@ -121,38 +121,17 @@ def strict_avalanche_effect(function):
         answer.append(counter)
     return(answer)
 
-'''
-def bit_independence_criterion(function):
-    tpl = (3, 5, 6, 9, 10, 12)
-    values = functionValue(pi2)
-    for k in range(4):
-        temp = 0
-        counter = 0
-        for i in range(6):
-            for u in range(4):
-                if tpl(i) << u & 1 == 1:
-                    temp_function.append(values[4-u])
-            for j in range(16):
-         
-def bit_independence_criterion(function):
-    tpl = (3, 5, 6, 9, 10, 12)
-    values = functionValue(pi2)
-    for i in range(6):
-        temp_functions = []
-        for u in range(4)
-            if tpl(i) << u & 1 == 1:
-                temp_functions.append(4-u)
-        for j in range(16):
-            if values[temp_functions[1]] 
-'''
-'''
+
 def avalanche_effect(function):
-    answer = []
-    for i in range(len(function)):
-        counter = 0
-        for j in range(4):
-            if function(i) << j & 1 != function(i ^ ))
-'''
+    answer = [[0, 0, 0, 0, 0] for _ in range(4)]  #  первый список- результаты для х4,.. Первый элемент первого списка- количество векторов, поменявших 0 координат...
+    for k in range(4):
+        for i in range(16):
+            counter = 0
+            for j in range(4):
+                if function[i] << j & 1 != function[i ^ (2 ** k)] << j & 1:
+                    counter += 1
+            answer[k][counter] += 1
+    return(answer)
 
 print(functionValue(pi2))
 print(buildFunction(pi2))
