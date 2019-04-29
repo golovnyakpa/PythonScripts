@@ -7,9 +7,9 @@ pi2 = (11, 3, 5, 8, 2, 15, 10, 13, 14, 1, 7, 4, 12, 9, 6, 0)
 
 
 def anf(function):
-    '''
+    """
     Получение коэффициентов АНФ
-    '''
+    """
     buff = []
     iterations = len(function)
     ANF = [function[0]]
@@ -22,21 +22,21 @@ def anf(function):
     return ANF
 
 
-def hadamardMatrix(dimension):
-    '''
+def hadamard_matrix(dimension):
+    """
     Создание мтрицы Адамара-Сильвестра соответстыующего размера
-    '''
+    """
     if dimension == 1:
         return W
     else:
-        return np.hstack((np.vstack((hadamardMatrix(dimension - 1), hadamardMatrix(dimension - 1))),
-                          np.vstack((hadamardMatrix(dimension - 1), -hadamardMatrix(dimension - 1)))))
+        return np.hstack((np.vstack((hadamard_matrix(dimension - 1), hadamard_matrix(dimension - 1))),
+                          np.vstack((hadamard_matrix(dimension - 1), -hadamard_matrix(dimension - 1)))))
 
 
-def functionValue(function):
-    '''
+def function_value(function):
+    """
     Получение таблиц истинности разрядных функций
-    '''
+    """
     values = [[] for _ in range(len(bin(max(function))[2:]))]
     for value in function:
         for function_number in range(len(bin(max(function))[2:])):
@@ -44,11 +44,11 @@ def functionValue(function):
     return values
 
 
-def generateMonoms(n):
-    '''
+def generate_monoms(n):
+    """
     Генерация всех мономов в лексикографическом порядке
     Функция нужна для вывода разрядных функций в виде АНФ (buildFunction)
-    '''
+    """
     monoms = ['1']
     x = 1
     for i in range(2 ** n - 1):
@@ -58,49 +58,49 @@ def generateMonoms(n):
                 mon += 'x' + str(j)
         monoms.append(mon)
         x += 1
-    return (monoms)
+    return monoms
 
 
-def buildFunction(function):
-    '''
+def build_function(function):
+    """
     Вывод значений функции в виде АНФ
-    '''
+    """
     answer = ''
     num_of_bits = len(bin(max(function))[2:])
-    monoms = generateMonoms(num_of_bits)
+    monoms = generate_monoms(num_of_bits)
     print_yi = "y{}"
     counter = 0
     for i in range(num_of_bits):
         answer += print_yi.format(counter) + ' = '
-        coefficients = functionValue(anf(function))[i]
+        coefficients = function_value(anf(function))[i]
         for j in range(len(function)):
             if coefficients[j]:
                 answer += monoms[j] + ' ⊕ '
         counter += 1
         answer = answer[0:len(answer) - 3:]
         answer += '\n'
-    return (answer)
+    return answer
 
 
-def fourierSpectrum(function):
-    '''
+def fourier_spectrum(function):
+    """
     Коэффициенты фурье разрядных функций
-    '''
-    values = functionValue(function)
+    """
+    values = function_value(function)
     spectrum = []
-    M = hadamardMatrix(int(math.log2(len(function))))
+    M = hadamard_matrix(int(math.log2(len(function))))
     for functions in range(len(bin(max(function))[2:])):
         spectrum.append(np.matmul(np.array(values[functions]).T, M).tolist())
     return spectrum
 
 
-def walschSpectrum(function):
-    '''
+def walsch_spectrum(function):
+    """
     Коэффицинты Уолша-Адамара разрядных функций
-    '''
-    values = functionValue(function)
+    """
+    values = function_value(function)
     unit_array = np.array([1 for _ in range(len(function))])
-    M = hadamardMatrix(int(math.log2(len(function))))
+    M = hadamard_matrix(int(math.log2(len(function))))
     spectrum = []
     for functions in range(len(bin(max(function))[2:])):
         spectrum.append(np.matmul((unit_array - 2 * np.array(values[functions])).T, M).tolist())
@@ -110,33 +110,82 @@ def walschSpectrum(function):
 def strict_avalanche_effect(function):
     answer = []
     for k in range(4):
-        values = functionValue(function)[k]
+        values = function_value(function)[k]
         temp = 0
         counter = 0
         for i in range(16):
             for j in range(4):
-                if (values[temp] != values[temp ^ (2 ** j)]):
+                if values[temp] != values[temp ^ (2 ** j)]:
                     counter = counter + 1
             temp = temp + 1
         answer.append(counter)
-    return(answer)
+    for i in range(len(answer)):
+        answer[i] = answer[i] / 64
+    return answer
+
+
+def possitions_of_ones(n):
+    """
+    Определяет на сколько позиций надо сдвигать число циклически
+    вправо, чтобы получить единицу.
+    Ответ возвращает в виде списка
+    """
+    answer = []
+    for i in range(4):
+        if n >> i & 1 == 1:
+            answer.append(i)
+    return answer
+
+
+def bit_independence_criterion(function):
+    probs = strict_avalanche_effect(function)
+    tpl = (3, 5, 6, 9, 10, 12)
+    result = []
+    answ = []
+    for i in tpl:
+        pos = possitions_of_ones(i)
+        counter = 0
+        for j in range(16):
+            for k in range(4):
+                if function[j] >> pos[0] & 1 != function[j ^ (2 ** k)] >> pos[0] & 1 and \
+                   function[j] >> pos[1] & 1 != function[j ^ (2 ** k)] >> pos[1] & 1:
+                    counter += 1
+        answ.append(counter / 64)
+        if counter / 64 == probs[pos[0]] * probs[pos[1]]:
+            result.append('independent')
+        else:
+            result.append('dependent')
+        counter = 0
+    return result
 
 
 def avalanche_effect(function):
-    answer = [[0, 0, 0, 0, 0] for _ in range(4)]  #  первый список- результаты для х4,.. Первый элемент первого списка- количество векторов, поменявших 0 координат...
+    """
+    первый список- результаты для х4,..
+    Первый элемент первого списка- количество векторов, поменявших 0 координат...
+    """
+    answer = [[0, 0, 0, 0, 0] for _ in range(4)]
     for k in range(4):
         for i in range(16):
             counter = 0
             for j in range(4):
-                if function[i] << j & 1 != function[i ^ (2 ** k)] << j & 1:
+                if function[i] >> j & 1 != function[i ^ (2 ** k)] >> j & 1:
                     counter += 1
             answer[k][counter] += 1
-    return(answer)
+    sum = 0
+    for i in answer:
+        for j, k in enumerate(i):
+            sum += j * k
+    result = sum / (16 * 4)
+    return result
 
-print(functionValue(pi2))
-print(buildFunction(pi2))
-print(walschSpectrum(pi2))
-print(fourierSpectrum(pi2))
-print(int('111', 2))
+
+print(function_value(pi2))
+print(build_function(pi2))
+print(walsch_spectrum(pi2))
+print(fourier_spectrum(pi2))
 print(strict_avalanche_effect(pi2))
-print(bin(5))
+print(bit_independence_criterion(pi2))
+print(avalanche_effect(pi2))
+m = avalanche_effect(pi2) / 4
+print(m)
