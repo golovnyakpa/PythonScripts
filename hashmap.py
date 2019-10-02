@@ -29,8 +29,7 @@ class HashMap:
         def __eq__(self, other):
             # TODO реализовать функцию сравнения
             # raise NotImplementedError
-            return self.pair[0] == other.pair[0] and self.pair[1] == \
-                                                     other.pair[1]
+            return self.pair[0] == other.pair[0]
 
     def __init__(self, bucket_num=64):
         """
@@ -38,60 +37,51 @@ class HashMap:
         :param bucket_num: число бакетов при инициализации
         """
         self.map = [[]] * bucket_num
-        self.prime_number = bucket_num
+        self.bucket_num = bucket_num
         self.entries_num = 0
         # raise NotImplementedError
 
     def get(self, key, default_value=None):
         # TODO метод get, возвращающий значение,
         #  если оно присутствует, иначе default_value
-        # raise NotImplementedError
         hash_ = self._get_hash(key)
-        if self.map[hash_]:
-            for entry in self.map[hash_]:
+        idx = self._get_index(hash_)
+        if self.map[idx] != []:
+            for entry in self.map[idx]:
                 if entry.get_key() == key:
                     return entry.get_value()
-        else:
-            return default_value
+        return default_value
 
     def put(self, key, value):
         # TODO метод put, кладет значение по ключу,
         #  в случае, если ключ уже присутствует он его заменяет
         #  raise NotImplementedError
-        self._resize()
         hash_ = self._get_hash(key)
-        for i in range(len(self.map[hash_])):
-            if self.map[hash_][i].get_key() == key:
-                del self.map[hash_][i]
+        idx = self._get_index(hash_)
+        for i in range(len(self.map[idx])):
+            if self.map[idx][i].get_key() == key:
+                del self.map[idx][i]
                 self.entries_num -= 1
                 break
-        self.map[hash_].append(HashMap.Entry(key, value))
+        self.map[idx].append(HashMap.Entry(key, value))
         self.entries_num += 1
 
     def __len__(self):
         # TODO Возвращает количество Entry в массиве
         # raise NotImplementedError
-        '''
-        len_ = 0
-        for lst in self.map:
-            for entry in lst:
-                len_ += 1
-        return len_
-        '''
         return self.entries_num
 
     def _get_hash(self, key):
         # TODO Вернуть хеш от ключа,
         #  по которому он кладется в бакет
         # raise NotImplementedError
-        num = self.str_to_num(key)
-        return num % self.prime_number
+        return hash(key)
 
     def _get_index(self, hash_value):
         # TODO По значению хеша вернуть индекс элемента в массиве
         # raise NotImplementedError
-        return hash_value
-        
+        return hash_value % self.bucket_num
+
     def values(self):
         # TODO Должен возвращать итератор значений
         # raise NotImplementedError
@@ -122,39 +112,26 @@ class HashMap:
     def _resize(self):
         # TODO Время от времени нужно ресайзить нашу хешмапу
         # raise NotImplementedError
-        '''
-        num = 0
-        for lst in self.map():
-            if lst:
-                num += 1
-        if num > len(self.map) // 2 + 1:
-            new_map = [[]] * len(self.map) * 2
-            self.prime_number = len(self.map) * 2
-            for lst in self.map:
-                for entry in lst:
-                    n = self.str_to_num(entry.get_key())
-                    hash_ = n % prime_number
-                    new_map[hash_].append(entry)
-        self.map = new_map'''
         if self.entries_num > len(self.map) - 3:
             new_map = [[]] * len(self.map) * 2
-            self.prime_number = len(self.map) * 2
+            self.bucket_num = len(self.map) * 2
             for lst in self.map:
                 for entry in lst:
                     hash_ = self._get_hash(entry.get_key())
-                    new_map[hash_].append(entry)
+                    idx = self._get_index(hash_)
+                    new_map[idx].append(entry)
             self.map = new_map
-        return
+            return
         if self.entries_num < len(self.map) // 2 - 1:
             new_map = [[]] * (len(self.map) // 2)
             self.prime_number = len(self.map) // 2
             for lst in self.map:
                 for entry in lst:
                     hash_ = self._get_hash(entry.get_key())
-                    new_map[hash_].append(entry)
+                    idx = self._get_index(hash_)
+                    new_map[idx].append(entry)
             self.map = new_map
-        return
-                     
+            return
 
     def __str__(self):
         # TODO Метод выводит "buckets: {}, items: {}"
@@ -163,8 +140,9 @@ class HashMap:
         item = ''
         for i, lst in enumerate(self.map):
             for entry in lst:
-                bucket +=  str(i) + ', '
+                bucket += str(i) + ', '
                 item += entry.get_value() + ', '
+        bucket = bucket[:len(bucket)-2]
         return f'buckets: {bucket}, items: {item}'
 
     def __contains__(self, item):
@@ -172,149 +150,6 @@ class HashMap:
         # raise NotImplementedError
         for lst in self.map:
             for entry in lst:
-                if item == entry.get_value():
+                if item == entry.get_key():
                     return True
         return False
-        
-    def str_to_num(self, str_):
-        sum_ = 0
-        for i in str(str_):
-            sum_ += ord(i)
-        return sum_
-    def values(self):
-90
-        # TODO Должен возвращать итератор значений
-91
-        # raise NotImplementedError
-92
-        all_values = []
-93
-        for lst in self.map:
-94
-            for entry in lst:
-95
-                all_values.append(entry.get_value())
-96
-        return iter(all_values)
-97
-​
-98
-    def keys(self):
-99
-        # TODO Должен возвращать итератор ключей
-100
-        # raise NotImplementedError
-101
-        all_keys = []
-102
-        for lst in self.map:
-103
-            for entry in lst:
-104
-                all_keys.append(entry.get_key())
-105
-        return iter(all_keys)
-106
-​
-107
-    def items(self):
-108
-        # TODO Должен возвращать итератор пар ключ и значение (tuples)
-109
-        # raise NotImplementedError
-110
-        all_entries = []
-111
-        for lst in self.map:
-112
-            all_entries += lst
-113
-        return iter(all_entries)
-114
-​
-115
-    def _resize(self):
-116
-        # TODO Время от времени нужно ресайзить нашу хешмапу
-117
-        # raise NotImplementedError
-118
-        num = 0
-119
-        for lst in self.map():
-120
-            if lst:
-121
-                num += 1
-122
-        if num > len(self.map) // 2 + 1:
-123
-            new_map = [[]] * len(self.map) * 2
-124
-            self.prime_number = len(self.map) * 2
-125
-            for lst in self.map:
-126
-                for entry in lst:
-127
-                    n = self.str_to_num(entry.get_key())
-128
-                    hash_ = n % prime_number
-129
-                    new_map[hash_].append(entry)
-130
-        self.map = new_map
-131
-                     
-132
-​
-133
-    def __str__(self):
-134
-        # TODO Метод выводит "buckets: {}, items: {}"
-135
-        # raise NotImplementedError
-136
-        bucket = ''
-137
-        item = ''
-138
-        for i, lst in enumerate(self.map):
-139
-            for entry in lst:
-140
-                bucket +=  str(i) + ', '
-141
-                item += entry.get_value() + ', '
-142
-        return f'buckets: {bucket}, items: {item}'
-143
-​
-144
-    def __contains__(self, item):
-145
-        # TODO Метод проверяющий есть ли объект (через in)
-146
-        # raise NotImplementedError
-147
-        for lst in self.map:
-148
-            for entry in lst:
-149
-                if item == entry.get_value():
-150
-                    return True
-151
-        return False
-152
-        
-153
-    def str_to_num(self, str_):
-154
-        sum_ = 0
-155
-        for i in str(str_):
-156
-            sum_ += ord(i)
-157
-        return sum_
