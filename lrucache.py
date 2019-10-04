@@ -25,21 +25,20 @@ class LRUCacheDecorator:
         cache = {}
 
         def wrapped(*args, **kwargs):
-            current_milli_time = lambda: time.time() * 1000
             args_hash = hash(tuple([args, frozenset(kwargs)]))
             if args_hash not in cache:
                 if len(cache) == self.maxsize:
                     self.delete_lru_record(cache)
                 cache[args_hash] = [function(*args, **kwargs),
-                                    current_milli_time(), 
-                                    current_milli_time()]
+                                    time.time() * 1000,
+                                    time.time() * 1000]
             else:
-                if current_milli_time() - cache[args_hash][1] > self.ttl:
+                if time.time() * 1000 - cache[args_hash][1] > self.ttl:
                     cache[args_hash] = [function(*args, **kwargs),
-                                        current_milli_time(), 
-                                        current_milli_time()]
+                                        time.time() * 1000,
+                                        time.time() * 1000]
                 else:
-                    cache[args_hash][2] = current_milli_time()
+                    cache[args_hash][2] = time.time() * 1000
             return cache[args_hash][0]
         return wrapped
 
