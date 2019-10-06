@@ -3,12 +3,14 @@
 
 
 import numpy as np
+from copy import deepcopy
 
 
 class CSRMatrix:
     """
     CSR (2D) matrix.
-    Here you can read how CSR sparse matrix works: https://en.wikipedia.org/wiki/Sparse_matrix
+    Here you can read how CSR sparse matrix works:
+    https://en.wikipedia.org/wiki/Sparse_matrix
 
     Must be implemented:
     1. Getting and setting element by indexes of row and col.
@@ -46,15 +48,10 @@ class CSRMatrix:
                     self.A.append(init_matrix_representation[2][i])
                     self.JA.append(init_matrix_representation[1][i])
                 for i in range(max(init_matrix_representation[0])+1):
-                    self.IA.append(init_matrix_representation[0].count(i)+self.IA[-1])
+                    self.IA.append(init_matrix_representation[0].
+                                   count(i)+self.IA[-1])
             else:
                 raise ValueError
-            self.col_num = max(init_matrix_representation[1])
-            self.row_num = max(init_matrix_representation[0])
-            '''
-            print(self.A)
-            print(self.IA)
-            print(self.JA)'''
         elif isinstance(init_matrix_representation, np.ndarray):
             for row in init_matrix_representation:
                 nnz_in_row = 0
@@ -64,12 +61,6 @@ class CSRMatrix:
                         self.JA.append(i)
                         nnz_in_row += 1
                 self.IA.append(self.IA[-1]+nnz_in_row)
-            self.col_num = len(init_matrix_representation[0])
-            self.row_num = len(init_matrix_representation)
-            '''
-            print(self.A)
-            print(self.IA)
-            print(self.JA)'''
         else:
             raise ValueError
 
@@ -136,28 +127,79 @@ class CSRMatrix:
     def nnz(self):
         return self.IA[-1]
 
-np.random.seed(42)
-'''
-matrix = np.random.randint(0, 2, (200, 200))
-csr_matrix = CSRMatrix(matrix)
-print(csr_matrix.IA)
-csr_matrix[1,1]'''
-'''
-for i, j in zip(range(matrix.shape[0]), range(matrix.shape[1])):
-    print(csr_matrix[i, j])
-    np.isclose(matrix[i, j], csr_matrix[i, j])'''
+    def __add__(self, other):
+        if max(self.JA) != max(other.JA) or len(self.IA) != len(self.IA):
+            raise ValueError
+        result = deepcopy(self)
+        string_num = []
+        for i in range(len(other.IA) - 1):
+            for j in range(other.IA[i+1] - other.IA[i]):
+                string_num.append(i)
+        for i in range(len(other.A)):
+            result[string_num[i], other.JA[i]] += other.A[i]
+        return result
 
+    def __sub__(self, other):
+        if max(self.JA) != max(other.JA) or len(self.IA) != len(self.IA):
+            raise ValueError
+        result = deepcopy(self)
+        string_num = []
+        for i in range(len(other.IA) - 1):
+            for j in range(other.IA[i+1] - other.IA[i]):
+                string_num.append(i)
+        for i in range(len(other.A)):
+            result[string_num[i], other.JA[i]] -= other.A[i]
+        return result
 
-row_ind = [1,1,2,3,3]
-col_ind = [0,1,2,1,3]
-data = [5, 8, 3, 6,5]
-#x = np.array([[10, 20, 0, 0, 0, 0], [0, 30, 0, 40, 0, 0], [0, 0, 50, 60, 70, 0], [0, 0, 0, 0, 0, 80]])
-x = np.array([[0, 0, 0, 0], [5, 8, 0, 0], [0, 0, 2, 0], [0, 0, 0, 1]])
-m = CSRMatrix(x)
-M = CSRMatrix((row_ind, col_ind, data))
-m[0, 3] = 1
-print(m.A, m.IA, m.JA)
-m[1, 1] = 10
-m[2,2] = 3
-print(m.A, m.IA, m.JA)
-print(m.to_dense())
+    def __mul__(self, other):
+        if max(self.JA) != max(other.JA) or len(self.IA) != len(self.IA):
+            raise ValueError
+        string_num = []
+        result = CSRMatrix(np.zeros((len(self.IA)-1, max(self.JA) + 1)))
+        for i in range(len(other.IA) - 1):
+            for j in range(other.IA[i+1] - other.IA[i]):
+                string_num.append(i)
+        for i in range(len(other.A)):
+            if other[string_num[i], other.JA[i]] and self[string_num[i],
+                                                          other.JA[i]]:
+                result[string_num[i], other.JA[i]] = other.A[i] * \
+                                        self[string_num[i], other.JA[i]]
+        return result
+
+    def __rmul__(self, alpha):
+        if alpha == 0:
+            return CSRMatrix(np.zeros((len(self.IA)-1, max(self.JA) + 1)))
+        result = deepcopy(self)
+        for i in range(len(result.A)):
+            result.A[i] *= alpha
+        return result
+
+    def __truediv__(self, alpha):
+        if alpha == 0:
+            raise ZeroDivisionError
+        result = deepcopy(self)
+        for i in range(len(result.A)):
+            result.A[i] /= alpha
+        return result
+
+    def __matmul__(self, other):
+        if (max(self.JA) + 1) != (len(other.IA) - 1):
+            raise ValueError
+        first_string_num = []
+        second_string_num = []
+        result = CSRMatrix(np.zeros((len(self.IA)-1, max(self.JA) + 1)))
+        for i in range(len(self.IA) - 1):
+            for j in range(self.IA[i+1] - self.IA[i]):
+                first_string_num.append(i)
+        for i in range(len(other.IA) - 1):
+            for j in range(other.IA[i+1] - other.IA[i]):
+                second_string_num.append(i)
+        for i in range(len(self.IA)-1):
+            for j in range(max(other.JA)+1):
+                sum_ = 0
+                for k in range(max(self.JA)+1):
+                    if self[i, k] and other[k, j]:
+                        sum_ += self[i, k] * other[k, j]
+                if sum_ != 0:
+                    result[i, j] = sum_
+        return result
